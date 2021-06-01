@@ -5,11 +5,9 @@ import xliff from "xliff"
 
 const { Option } = Select
 const IndexPage = () => {
-  const [sourceContent, setSourceContent] = React.useState(null)
   const [targetContent, setTargetContent] = React.useState(null)
   const [sourceLanguage, setSourceLanguage] = React.useState("lt")
   const [targetLanguage, setTargetLanguage] = React.useState("en")
-  const targetForm = {}
 
   const onChange = (info) => {
     if (info.file.status === "done") {
@@ -29,15 +27,12 @@ const IndexPage = () => {
           if (err) {
             throw new Error(err)
           }
-          console.log(res)
           Object.keys(res.resources.ngi18n).forEach((id) => {
             if (typeof res.resources.ngi18n[id].source !== "string") {
-              res.resources.ngi18n[id].target = res.resources.ngi18n[id].source
-            } else {
-              res.resources.ngi18n[id].target = ""
+              res.resources.ngi18n[id].source = JSON.stringify(res.resources.ngi18n[id].source)
             }
           })
-          setSourceContent(res)
+          console.log(res)
           setTargetContent(res)
           event.onSuccess(null, {
             status: 200
@@ -62,15 +57,21 @@ const IndexPage = () => {
     "pl"
   ]
 
-  const createTargetFile = () => {
-    const updatedTargetContent = JSON.parse(JSON.stringify(targetContent))
-    Object.entries(targetForm).forEach((values) => {
-      if (updatedTargetContent.resources.ngi18n[values[0]]) {
-        updatedTargetContent.resources.ngi18n[values[0]].target = targetForm[values[0]]
-      }
-    })
+  const setNewTarget = (id, value) => {
+    const updatedTargetContent = {...targetContent};
+    updatedTargetContent.resources.ngi18n[id].target = value;
+    setTargetContent(updatedTargetContent);
+  }
 
-    xliff.js2xliff(updatedTargetContent, (err, res) => {
+  const createTargetFile = () => {
+    // const updatedTargetContent = JSON.parse(JSON.stringify(targetContent))
+    // Object.entries(targetForm).forEach((values) => {
+    //   if (updatedTargetContent.resources.ngi18n[values[0]]) {
+    //     updatedTargetContent.resources.ngi18n[values[0]].target = targetForm[values[0]]
+    //   }
+    // })
+
+    xliff.js2xliff(targetContent, (err, res) => {
       if (err) {
         message.error(`Įvyko nenumatyta klaida.`)
       } else {
@@ -100,7 +101,7 @@ const IndexPage = () => {
           <Button icon={<UploadOutlined/>}>Įkelti xlf failą</Button>
         </Upload>
         <Divider/>
-        {(sourceContent && targetContent) &&
+        {(targetContent) &&
         <React.Fragment>
           <Row gutter={[32, 32]}>
             <Col span={12}>
@@ -125,19 +126,16 @@ const IndexPage = () => {
             </Col>
           </Row>
           <br/>
-          {Object.keys(sourceContent.resources.ngi18n).map((id, index) => {
-            const source = sourceContent.resources.ngi18n[id]
-            const target = targetContent.resources.ngi18n[id]
-            if (typeof source.source !== "string") {
-              return null
-            }
+          {Object.keys(targetContent.resources.ngi18n).map((id, index) => {
+            const source = targetContent.resources.ngi18n[id].source
+            const target = targetContent.resources.ngi18n[id].target
             return (
               <Row key={index} gutter={[32, 32]}>
                 <Col span={12}>
-                  <Input value={source.source} readOnly/>
+                  <Input value={source} readOnly/>
                 </Col>
                 <Col span={12}>
-                  <Input value={targetForm[id]} onKeyUp={($event) => targetForm[id] = $event.target.value}/>
+                  <Input value={target} onChange={($event) => setNewTarget(id, $event.target.value)}/>
                 </Col>
               </Row>
             )
